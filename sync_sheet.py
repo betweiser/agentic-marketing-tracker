@@ -69,42 +69,19 @@ def read_filters(ws):
     return from_date, to_date
 
 
-def get_card_template_tags():
-    """Fetch the card definition to find the exact parameter names Metabase expects."""
-    r = requests.get(
-        f"{MB_BASE_URL}/api/card/{MB_CARD_ID}",
-        headers={"x-api-key": MB_API_KEY},
-        timeout=30,
-    )
-    r.raise_for_status()
-    card = r.json()
-    tags = card["dataset_query"]["native"]["template-tags"]
-    return tags
-
-
 def run_metabase_query(from_date, to_date):
-    tags = get_card_template_tags()
-
-    def find_tag(name):
-        for tag_name, tag in tags.items():
-            if tag_name == name or tag.get("name") == name:
-                return tag
-        return None
-
-    from_tag = find_tag("from_date")
-    to_tag = find_tag("to_date")
-    if not from_tag or not to_tag:
-        sys.exit("ERROR: Could not find from_date/to_date parameters on the Metabase card.")
-
+    # We already know the query's parameter names from the SQL itself
+    # ({{from_date}} / {{to_date}}), so no need to introspect the card
+    # (that requires permissions your API key may not have).
     parameters = [
         {
             "type": "date/single",
-            "target": ["variable", ["template-tag", from_tag["name"]]],
+            "target": ["variable", ["template-tag", "from_date"]],
             "value": from_date.isoformat(),
         },
         {
             "type": "date/single",
-            "target": ["variable", ["template-tag", to_tag["name"]]],
+            "target": ["variable", ["template-tag", "to_date"]],
             "value": to_date.isoformat(),
         },
     ]
